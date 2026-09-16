@@ -1,5 +1,7 @@
 # Changelog
 
+- Bound the remaining upstream body reads (FIRMS, CelesTrak, adsb.lol, TomTom, OpenSky, adsbdb) with streaming size caps and shared deadlines; the adsb.lol military and OpenSky `states/all` polls gain deadlines of their own.
+
 - CCTV cameras whose bearing is a guess now say so. Packs mark bearings derived
   from a hash of the camera id as `headingConfidence: 'low'`, but nothing read the
   flag, so roughly 70% of a default catalog rendered like surveyed facings. The HUD
