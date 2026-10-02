@@ -61,14 +61,13 @@ export async function readResponseJsonCapped(response, maxBytes, signal) {
  * Throws { code:'RESPONSE_TOO_LARGE' }.
  */
 export async function readResponseBytesCapped(response, maxBytes, signal) {
-  const tooLarge = () => {
-    const err = new Error('Upstream response too large');
-    err.code = 'RESPONSE_TOO_LARGE';
-    return err;
-  };
+  const tooLarge = () =>
+    Object.assign(new Error('Upstream response too large'), {
+      code: 'RESPONSE_TOO_LARGE',
+    });
   const declared = Number(response.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > maxBytes) {
-    void response.body?.cancel().catch(() => {});
+    await response.body?.cancel().catch(() => {});
     throw tooLarge();
   }
   signal?.throwIfAborted();
@@ -95,20 +94,20 @@ export async function readResponseBytesCapped(response, maxBytes, signal) {
       if (total > maxBytes) throw tooLarge();
       chunks.push(value);
     }
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return out;
   } catch (error) {
-    cancel();
+    await reader.cancel().catch(() => {});
     throw error;
   } finally {
     signal?.removeEventListener('abort', cancel);
     reader.releaseLock();
   }
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return out;
 }
 
 /**
